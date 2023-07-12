@@ -1,15 +1,41 @@
-import { KeyboardAvoidingView, StyleSheet, Text, TextInput, TouchableOpacity, View, Image } from 'react-native'
+import { KeyboardAvoidingView, StyleSheet, Text, TextInput, TouchableOpacity, View, Image, ActivityIndicator } from 'react-native'
 import React, { useState } from 'react';
-// import { auth } from '../config/firebase';
+import { FIREBASE_AUTH } from "../config/firebase";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    // const handleSignUp = async () => {
-    //     const user = await auth.createUserWithEmailAndPassword(email, password)
-    //     console.log(user.email);
-    // }
+    const auth = FIREBASE_AUTH;
+
+    const handleSignUp = async () => {
+        setLoading(true);
+        try {
+            const response = await createUserWithEmailAndPassword(auth, email, password);
+            console.log(response);
+            alert("Account successfully created!");
+        } catch (error) {
+            console.error(error);
+            alert("Registration failed:" + error.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const handleSignIn = async () => {
+        setLoading(true);
+        try {
+            const response = await signInWithEmailAndPassword(auth, email, password);
+            console.log(response);
+        } catch (error) {
+            console.error(error);
+            alert("Login failed:" + error.message);
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
         <View
@@ -39,20 +65,24 @@ export default function LoginScreen() {
                 />
             </View>
 
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    onPress={() => { }}
-                    style={styles.buttonSignIn}
-                >
-                    <Text style={styles.buttonSignInText}>Login</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={() => { }}
-                    style={styles.buttonSignUp}
-                >
-                    <Text style={styles.buttonSignUpText}>Register</Text>
-                </TouchableOpacity>
-            </View>
+            {loading ? (
+                <ActivityIndicator size="large" color="#ffcb50" />
+            ) : (
+                <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                        onPress={handleSignIn}
+                        style={styles.buttonSignIn}
+                    >
+                        <Text style={styles.buttonSignInText}>Login</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={handleSignUp}
+                        style={styles.buttonSignUp}
+                    >
+                        <Text style={styles.buttonSignUpText}>Register</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
         </View>
     )
@@ -88,8 +118,6 @@ const styles = StyleSheet.create({
         width: "100%",
         padding: 15,
         borderRadius: 10,
-        // borderColor: "#f7b81b",
-        // borderWidth: 2,
         margin: 5,
         alignItems: "center"
     },
