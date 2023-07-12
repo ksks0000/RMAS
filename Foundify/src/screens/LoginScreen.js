@@ -2,11 +2,18 @@ import { KeyboardAvoidingView, StyleSheet, Text, TextInput, TouchableOpacity, Vi
 import React, { useState } from 'react';
 import { FIREBASE_AUTH } from "../config/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { Button } from 'react-native';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const [username, setUsername] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [phone, setPhone] = useState();
+    const [photo, setPhoto] = useState(null);
+    const [toRegister, setToRegister] = useState(false);
 
     const auth = FIREBASE_AUTH;
 
@@ -37,51 +44,137 @@ export default function LoginScreen() {
         }
     }
 
+    const handleAddPhoto = () => {
+
+    }
+
     return (
         <View
             style={styles.container}
             behavior='padding'
         >
-            <View style={styles.imageContainer}>
-                <Image
-                    source={require('../../assets/indexScreenImg.jpg')}
-                    style={styles.image}
-                />
-            </View>
 
-            <View style={styles.inputContainer}>
-                <TextInput
-                    placeholder='Email'
-                    value={email}
-                    onChangeText={text => setEmail(text)}
-                    style={styles.input}
-                />
-                <TextInput
-                    placeholder='Password'
-                    value={password}
-                    onChangeText={text => setPassword(text)}
-                    style={styles.input}
-                    secureTextEntry
-                />
-            </View>
+            {toRegister ? (
+                <>
+                    <View style={styles.addImageContainer}>
+                        {/* <Image
+                            style={styles.addImage}
+                            source={ }
+                        /> */}
+                        <TouchableOpacity
+                            style={styles.addImage}
+                            onPress={handleAddPhoto}
+                        >
+                            <Text style={styles.buttonSignUpText}> + Add Photo </Text>
+                        </TouchableOpacity>
+                    </View>
 
-            {loading ? (
-                <ActivityIndicator size="large" color="#ffcb50" />
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            placeholder='First Name'
+                            value={firstName}
+                            onChangeText={text => setFirstName(text)}
+                            style={styles.input}
+                        />
+                        <TextInput
+                            placeholder='Last Name'
+                            value={lastName}
+                            onChangeText={text => setLastName(text)}
+                            style={styles.input}
+                        />
+                        <TextInput
+                            placeholder='Email'
+                            value={email}
+                            onChangeText={text => setEmail(text)}
+                            style={styles.input}
+                        />
+                        <TextInput
+                            placeholder='Password'
+                            value={password}
+                            onChangeText={text => setPassword(text)}
+                            style={styles.input}
+                            secureTextEntry
+                        />
+                        <TextInput
+                            placeholder='Username'
+                            value={username}
+                            onChangeText={text => setUsername(text)}
+                            style={styles.input}
+                        />
+                        <TextInput
+                            placeholder='Phone Number'
+                            value={phone}
+                            onChangeText={text => setPhone(text)}
+                            style={styles.input}
+                            keyboardType='numeric'
+                        />
+                    </View>
+
+                    {loading ? (
+                        <ActivityIndicator size="large" color="#ffcb50" />
+                    ) : (
+                        <View style={styles.buttonContainer}>
+                            <TouchableOpacity
+                                onPress={handleSignUp}
+                                style={styles.buttonSignIn}
+                            >
+                                <Text style={styles.buttonSignInText}> Register </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => { setToRegister(!toRegister) }}
+                                style={styles.buttonSignUp}
+                            >
+                                <Text style={styles.buttonSignUpText}> Login </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                </>
             ) : (
-                <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                        onPress={handleSignIn}
-                        style={styles.buttonSignIn}
-                    >
-                        <Text style={styles.buttonSignInText}>Login</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={handleSignUp}
-                        style={styles.buttonSignUp}
-                    >
-                        <Text style={styles.buttonSignUpText}>Register</Text>
-                    </TouchableOpacity>
-                </View>
+                <>
+                    <View style={styles.imageContainer}>
+                        <Image
+                            source={require('../../assets/indexScreenImg.jpg')}
+                            style={styles.image}
+                        />
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            placeholder='Email'
+                            value={email}
+                            onChangeText={text => setEmail(text)}
+                            style={styles.input}
+                        />
+                        <TextInput
+                            placeholder='Password'
+                            value={password}
+                            onChangeText={text => setPassword(text)}
+                            style={styles.input}
+                            secureTextEntry
+                        />
+                    </View>
+
+                    {loading ? (
+                        <ActivityIndicator size="large" color="#ffcb50" />
+                    ) : (
+                        <View style={styles.buttonContainer}>
+                            <TouchableOpacity
+                                onPress={handleSignIn}
+                                style={styles.buttonSignIn}
+                            >
+                                <Text style={styles.buttonSignInText}> Login </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => { setToRegister(!toRegister) }}
+                                style={styles.buttonSignUp}
+                            >
+                                <Text style={styles.buttonSignUpText}> Register </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                </>
             )}
 
         </View>
@@ -147,12 +240,29 @@ const styles = StyleSheet.create({
         height: "35%",
         marginBottom: 45,
         borderRadius: 10,
-
     },
     image: {
         width: "100%",
         height: "100%",
         borderRadius: 15
+    },
+    addImageContainer: {
+        width: "80%",
+        height: "20%",
+        paddingBottom: 30,
+        display: "flex",
+        justifyContent: "flex-end",
+        alignItems: "center"
+    },
+    addImage: {
+        borderColor: "#385a64",
+        borderWidth: 1,
+        borderRadius: 10,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        width: "100%",
+        height: 130
     }
 
 })
