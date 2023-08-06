@@ -24,20 +24,6 @@ export default function LoginScreen() {
     const db = FIREBASE_DB;
     const storage = FIREBASE_STORAGE;
 
-    // const handleSignUp = async () => {
-    //     setLoading(true);
-    //     try {
-    //         const response = await createUserWithEmailAndPassword(auth, email, password);
-    //         console.log(response);
-    //         alert("Account successfully created!");
-    //     } catch (error) {
-    //         console.error(error);
-    //         alert("Registration failed:" + error.message);
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // }
-
     const handleSignUp = async () => {
         if (!email ||
             !firstName ||
@@ -73,19 +59,6 @@ export default function LoginScreen() {
             setLoading(false);
         }
     }
-
-    // const handleSignIn = async () => {
-    //     setLoading(true);
-    //     try {
-    //         const response = await signInWithEmailAndPassword(auth, email, password);
-    //         console.log(response);
-    //     } catch (error) {
-    //         console.error(error);
-    //         alert("Login failed:" + error.message);
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // }
 
     const handleSignIn = async () => {
         if (!username ||
@@ -186,7 +159,7 @@ export default function LoginScreen() {
                     photoURL: downloadURL,
                 });
 
-                console.log("Image uploaded and user profile updated successfully");
+                console.log("Image uploaded successfully");
             } catch (error) {
                 console.log("Error uploading image:", error);
             }
@@ -348,14 +321,14 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         height: "100%",
-        backgroundColor: "#fff", // "#f6f6f6",
+        backgroundColor: "#fff",
         marginTop: 40  //zbog baterije, sati, obavestenja
     },
     inputContainer: {
         width: "80%"
     },
     input: {
-        backgroundColor: "#f6f6f6", //"#fff",
+        backgroundColor: "#f6f6f6",
         paddingHorizontal: 15,
         paddingVertical: 10,
         borderRadius: 10,
@@ -389,19 +362,19 @@ const styles = StyleSheet.create({
     buttonSignInText: {
         fontWeight: "700",
         fontSize: 16,
-        color: "#385a64" //"#fff"
+        color: "#385a64"
     },
     buttonSignUpText: {
         fontWeight: "700",
         fontSize: 16,
-        color: "#e69b22" //"#e69b22"
+        color: "#e69b22"
     },
     addPhotoText: {
         marginTop: 50,
         textAlign: "center",
         fontWeight: "700",
         fontSize: 16,
-        color: "#e69b22" //"#e69b22"
+        color: "#e69b22"
     },
     buttonChoosePhotoText: {
         marginTop: 7,
@@ -409,8 +382,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: "#e69b22",
         textAlign: 'center'
-        // borderColor: "#385a64",
-        // borderBottomWidth: 1
     },
     buttonTakePhotoText: {
         marginTop: 7,
@@ -418,8 +389,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: "#e69b22",
         textAlign: 'center'
-        // borderColor: "#385a64",
-        // borderBottomWidth: 1
     },
     imageContainer: {
         width: "90%",
