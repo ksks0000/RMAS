@@ -36,6 +36,16 @@ export default function LoginScreen() {
     // }
 
     const handleSignUp = async () => {
+        if (!email ||
+            !firstName ||
+            !lastName ||
+            !password ||
+            !phoneNumber ||
+            !profilePicture ||
+            !username) {
+            alert("Input all fields");
+            return;
+        }
         setLoading(true);
         try {
             const response = await createUserWithEmailAndPassword(auth, email, password);
@@ -75,6 +85,11 @@ export default function LoginScreen() {
     // }
 
     const handleSignIn = async () => {
+        if (!username ||
+            !password) {
+            alert("Input all fields");
+            return;
+        }
         setLoading(true);
         try {
             let email = "";
@@ -89,7 +104,7 @@ export default function LoginScreen() {
                     pass = doc.data().password;
                 });
             } else {
-                alert("greska ovde");
+                return;
             }
             if (password === pass) {
                 const response = await signInWithEmailAndPassword(auth, email, password);
