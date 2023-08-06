@@ -5,6 +5,8 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'fire
 import { uploadBytes, ref, getDownloadURL } from 'firebase/storage';
 import { addDoc, getDocs, where, collection, query } from 'firebase/firestore';
 import * as ImagePicker from "expo-image-picker";
+import { Entypo } from '@expo/vector-icons';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
@@ -16,6 +18,7 @@ export default function LoginScreen() {
     const [phoneNumber, setPhoneNumber] = useState("");
     const [profilePicture, setProfilePicture] = useState(null);
     const [toRegister, setToRegister] = useState(false);
+    const [popUpAddPhoto, setPopUpAddPhoto] = useState(false);
 
     const auth = FIREBASE_AUTH;
     const db = FIREBASE_DB;
@@ -120,10 +123,13 @@ export default function LoginScreen() {
         }
     }
 
-    const handleAddPhoto = async () => {
+    const handleAddPhoto = () => {
+        setPopUpAddPhoto(!popUpAddPhoto);
+    }
+
+    const choosePhotoFromLibrary = async () => {
         try {
-            const { status } =
-                await ImagePicker.requestMediaLibraryPermissionsAsync();
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== "granted") {
                 console.log("Permission to access media library denied");
                 return;
@@ -143,6 +149,29 @@ export default function LoginScreen() {
             console.error(error);
         }
     }
+
+    const takePhotoByCamera = async () => {
+        try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+                console.log('Permission to access camera denied');
+                return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 1,
+            });
+            if (!result.canceled) {
+                if (result.assets.length > 0) {
+                    setProfilePicture(result.assets[0].uri);
+                }
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     const uploadImage = async (userID) => {
         if (profilePicture !== null && userID) {
@@ -182,8 +211,20 @@ export default function LoginScreen() {
                                 {profilePicture ? (<Image
                                     style={styles.addedImage}
                                     source={{ uri: profilePicture }}
-                                />) : (
+                                />) : (!popUpAddPhoto ? (
                                     <Text style={styles.addPhotoText}> + Add Photo </Text>
+                                ) : (
+                                    <View style={styles.popUpAddPhotoContainer}>
+                                        <TouchableOpacity onPress={choosePhotoFromLibrary} style={styles.addimageOptions}>
+                                            <FontAwesome name="photo" size={28} color="#e69b22" />
+                                            <Text style={styles.buttonChoosePhotoText}> Choose Photo </Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={takePhotoByCamera} style={styles.addimageOptions}>
+                                            <Entypo name="camera" size={28} color="#e69b22" />
+                                            <Text style={styles.buttonTakePhotoText}> Take Photo </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )
                                 )}
                             </View>
                         </TouchableOpacity>
@@ -357,9 +398,28 @@ const styles = StyleSheet.create({
     },
     addPhotoText: {
         marginTop: 50,
+        textAlign: "center",
         fontWeight: "700",
         fontSize: 16,
         color: "#e69b22" //"#e69b22"
+    },
+    buttonChoosePhotoText: {
+        marginTop: 7,
+        fontWeight: "600",
+        fontSize: 16,
+        color: "#e69b22",
+        textAlign: 'center'
+        // borderColor: "#385a64",
+        // borderBottomWidth: 1
+    },
+    buttonTakePhotoText: {
+        marginTop: 7,
+        fontWeight: "600",
+        fontSize: 16,
+        color: "#e69b22",
+        textAlign: 'center'
+        // borderColor: "#385a64",
+        // borderBottomWidth: 1
     },
     imageContainer: {
         width: "90%",
@@ -399,13 +459,27 @@ const styles = StyleSheet.create({
     },
     profilePictureContainer: {
         height: "100%",
-        width: "40%"
+        width: "100%"
     },
     addedImage: {
-        width: "100%",
+        width: "40%",
         height: "100%",
         borderRadius: 15,
         borderColor: "#e69b22",
-        borderWidth: 3
+        borderWidth: 3,
+        alignSelf: "center"
+    },
+    popUpAddPhotoContainer: {
+        display: 'flex',
+        flexDirection: "row",
+        width: "100%",
+        height: "100%",
+        justifyContent: "space-evenly",
+        alignItems: "center"
+    },
+    addimageOptions: {
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center"
     }
 })
