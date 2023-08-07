@@ -18,6 +18,7 @@ const Tab = createBottomTabNavigator();
 function BottomTabsGroup() {
     return (
         <Tab.Navigator
+            initialRouteName="Home"
             screenOptions={({ route }) => ({
                 tabBarIcon: ({ color, focused, size }) => {
                     let iconName;
@@ -43,9 +44,10 @@ function BottomTabsGroup() {
             <Tab.Screen
                 name="Map"
                 component={MapScreen}
-            // options={{
-            //     headerLeft: (props) => <HeaderLogo {...props} />
-            // }}
+                options={{
+                    headerTitleAlign: "left",
+                    // headerRight: (props) => <HeaderLogo {...props} />
+                }}
             />
         </Tab.Navigator>
     )
