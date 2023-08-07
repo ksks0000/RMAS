@@ -1,3 +1,5 @@
+
+import { Image, Text } from 'react-native';
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -38,7 +40,13 @@ function BottomTabsGroup() {
             <Tab.Screen name="Profile" component={ProfileScreen} />
             <Tab.Screen name="Leaderboard" component={LeaderboardScreen} />
             <Tab.Screen name="Home" component={TopTabsGroup} />
-            <Tab.Screen name="Map" component={MapScreen} />
+            <Tab.Screen
+                name="Map"
+                component={MapScreen}
+            // options={{
+            //     headerLeft: (props) => <HeaderLogo {...props} />
+            // }}
+            />
         </Tab.Navigator>
     )
 }
@@ -67,6 +75,14 @@ function TopTabsGroup() {
 
 }
 
+function HeaderLogo() {
+    return (
+        <Image
+            style={{ width: 130, height: 55 }}
+            source={require("../../assets/Foundify_HeaderLogo.png")}
+        />
+    )
+}
 
 export default function Navigation() {
     return (
