@@ -1,7 +1,7 @@
 import { KeyboardAvoidingView, StyleSheet, Text, TextInput, TouchableOpacity, View, Image, ActivityIndicator } from 'react-native'
 import React, { useState } from 'react';
-import { FIREBASE_AUTH, FIREBASE_DB, FIREBASE_STORAGE, updateProfile } from "../config/firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { FIREBASE_AUTH, FIREBASE_DB, FIREBASE_STORAGE } from "../config/firebase";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { uploadBytes, ref, getDownloadURL } from 'firebase/storage';
 import { addDoc, getDocs, where, collection, query } from 'firebase/firestore';
 import * as ImagePicker from "expo-image-picker";
@@ -50,8 +50,8 @@ export default function LoginScreen() {
             }
             const usersRefInDB = collection(db, "users");
             await addDoc(usersRefInDB, userRegisterObject);
-            await uploadImage(response.user.uid);
             alert("Account successfully created!");
+            await uploadImage(response.user.uid);
         } catch (error) {
             console.error(error);
             alert("Registration failed:" + error.message);
@@ -153,6 +153,7 @@ export default function LoginScreen() {
                 const response = await fetch(profilePicture);
                 const blob = await response.blob();
                 await uploadBytes(imageRef, blob);
+                blob.close();
 
                 const downloadURL = await getDownloadURL(imageRef);
                 await updateProfile(auth.currentUser, {
@@ -424,7 +425,9 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         width: "100%",
-        height: 130
+        height: 130,
+        backgroundColor: "#385a64", //ffcb50
+        borderRadius: 10
     },
     profilePictureContainer: {
         height: "100%",
@@ -434,8 +437,8 @@ const styles = StyleSheet.create({
         width: "40%",
         height: "100%",
         borderRadius: 15,
-        borderColor: "#e69b22",
-        borderWidth: 3,
+        borderColor: "#385a64",
+        // borderWidth: 3,
         alignSelf: "center"
     },
     popUpAddPhotoContainer: {

@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs"
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import EditProfileScreen from '../screens/EditProfileScreen';
 import LeaderboardScreen from "../screens/LeaderboardScreen";
 import MapScreen from "../screens/MapScreen";
 import LostItemsListScreen from "../screens/LostItemsListScreen";
@@ -53,14 +54,15 @@ function BottomTabsGroup() {
     )
 }
 
-// Stack
-const InsideStack = createNativeStackNavigator();
+// Profile Stack
+const ProfileStack = createNativeStackNavigator();
 
-function StackGroup() {
+function ProfileStackGroup() {
     return (
-        <InsideStack.Navigator>
-            <InsideStack.Screen name="" />
-        </InsideStack.Navigator>
+        <ProfileStack.Navigator>
+            <ProfileStack.Screen name="Profile  " component={BottomTabsGroup} options={{ headerShown: false }} />
+            <ProfileStack.Screen name="EditProfileScreen" component={EditProfileScreen} options={{ presentation: "modal", title: "Edit Profile" }} />
+        </ProfileStack.Navigator>
     )
 }
 
@@ -69,7 +71,17 @@ const TopTabs = createMaterialTopTabNavigator();
 
 function TopTabsGroup() {
     return (
-        <TopTabs.Navigator>
+        <TopTabs.Navigator
+            screenOptions={{
+                tabBarActiveTintColor: "#385a64",
+                tabBarLabelStyle: {
+                    fontWeight: 600
+                },
+                tabBarIndicatorStyle: {
+                    backgroundColor: "#e69b22",
+                    height: 3
+                }
+            }}>
             <TopTabs.Screen name="lost" component={LostItemsListScreen} />
             <TopTabs.Screen name="found" component={FoundItemsListScreen} />
         </TopTabs.Navigator>
@@ -89,6 +101,6 @@ function HeaderLogo() {
 export default function Navigation() {
     return (
 
-        <BottomTabsGroup />
+        <ProfileStackGroup />
     )
 }
