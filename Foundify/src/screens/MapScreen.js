@@ -1,16 +1,19 @@
 import { StyleSheet, Text, View, ActivityIndicator, Modal, Button, Pressable, Image, TouchableOpacity, TextInput } from 'react-native'
 import React, { useState, useEffect } from 'react'
-import { FIREBASE_AUTH, FIREBASE_DB } from "../config/firebase"
+import { FIREBASE_AUTH, FIREBASE_DB, FIREBASE_STORAGE } from "../config/firebase"
 import MapView, { Marker, Callout } from "react-native-maps"
 import * as Location from "expo-location"
 import { ScrollView } from 'react-native-gesture-handler';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from "expo-image-picker";
-import { collection, addDoc, updateDoc, GeoPoint, getDocs, where, query } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, GeoPoint, getDocs, where, query } from 'firebase/firestore';
+import { uploadBytes, ref, getDownloadURL } from 'firebase/storage';
+
 
 export default function MapScreen() {
     const [loading, setLoading] = useState(true);
     const [postLoading, setPostLoading] = useState(false);
+    const [itemImageLoading, setitemImageLoading] = useState(false);
     const [isPermissionAllowed, setIsPermissionAllowed] = useState(true);
     const [itemsDocs, setItemsDocs] = useState([]);
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -119,10 +122,23 @@ export default function MapScreen() {
                 aspect: [4, 3],
                 quality: 1,
             });
+            // if (!result.canceled) {
+            //     if (result.assets.length > 0) {
+            //         setItemImage(result.assets[0].uri);
+            //     }
+            // }
             if (!result.canceled) {
-                if (result.assets.length > 0) {
-                    setItemImage(result.assets[0].uri);
-                }
+                setitemImageLoading(true);
+                const imageUri = result.assets[0].uri;
+                const imageRef = ref(FIREBASE_STORAGE, `itemImages/${Date.now()}.jpg`);
+                const response = await fetch(imageUri);
+                const blob = await response.blob();
+                await uploadBytes(imageRef, blob);
+                blob.close();
+
+                const imageUrl = await getDownloadURL(imageRef);
+                setItemImage(imageUrl);
+                setitemImageLoading(false);
             }
         } catch (error) {
             console.error(error);
@@ -151,7 +167,8 @@ export default function MapScreen() {
                     title: itemTitle,
                     type: itemType,
                     userID: FIREBASE_AUTH.currentUser.uid,
-                    userUsername: userUsername
+                    userUsername: userUsername,
+                    image: itemImage
                 };
                 await addDoc(itemsCollectionRef, foundItemToAdd);
 
@@ -235,10 +252,14 @@ export default function MapScreen() {
                                     {itemImage ?
                                         <Image style={styles.addedItemImage} source={{ uri: itemImage }} />
                                         :
-                                        <>
-                                            <FontAwesome name="camera" size={28} color="#ffc801" />
-                                            <Text style={styles.addItemImageText}>  Add Photo Of Item </Text>
-                                        </>
+                                        (itemImageLoading ?
+                                            <ActivityIndicator size="large" color="#ffcb50" />
+                                            :
+                                            <>
+                                                <FontAwesome name="camera" size={28} color="#ffc801" />
+                                                <Text style={styles.addItemImageText}>  Add Photo Of Item </Text>
+                                            </>
+                                        )
                                     }
                                 </TouchableOpacity>
                             </View>
