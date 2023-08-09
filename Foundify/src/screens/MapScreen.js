@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, ActivityIndicator, Modal, Button, Pressable, Image, TouchableOpacity, TextInput } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { FIREBASE_AUTH, FIREBASE_DB } from "../config/firebase"
-import MapView from "react-native-maps"
+import MapView, { Marker, Callout } from "react-native-maps"
 import * as Location from "expo-location"
 import { ScrollView } from 'react-native-gesture-handler';
 import { FontAwesome } from '@expo/vector-icons';
@@ -9,16 +9,17 @@ import * as ImagePicker from "expo-image-picker";
 import { collection, addDoc, updateDoc, GeoPoint, getDocs, where, query } from 'firebase/firestore'
 
 export default function MapScreen() {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [postLoading, setPostLoading] = useState(false);
     const [isPermissionAllowed, setIsPermissionAllowed] = useState(true);
+    const [itemsDocs, setItemsDocs] = useState([]);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [itemImage, setItemImage] = useState(null);
     const [itemTitle, setItemTitle] = useState("");
     const [itemDescription, setItemDescription] = useState("");
     const [itemType, setItemType] = useState("");
     const [itemUserPhone, setItemUserPhone] = useState("");
-    const [itemLocation, setItemLocation] = useState({ ...currentLocation });
+    // const [itemLocation, setItemLocation] = useState({ ...currentLocation });
     const [currentLocation, setCurrentLocation] = useState({
         latitude: 43.318887,
         longitude: 21.895935
@@ -26,6 +27,28 @@ export default function MapScreen() {
 
     const itemsCollectionRef = collection(FIREBASE_DB, "items");
     const usersCollectionRef = collection(FIREBASE_DB, "users");
+
+    // user location /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // useEffect(() => {
+    //     setLoading(true);
+    //     (async () => {
+    //         let { status } = await Location.requestForegroundPermissionsAsync();
+    //         if (status !== 'granted') {
+    //             setIsPermissionAllowed(false);
+    //             console.log('Permission to access location was denied');
+    //             return;
+    //         }
+    //         let location = await Location.getCurrentPositionAsync({});
+    //         setCurrentLocation({
+    //             latitude: location.coords.latitude,
+    //             longitude: location.coords.longitude
+    //         });
+    //         setItemLocation(currentLocation);
+    //         setLoading(false);
+    //     })();
+    // }, []);
+
 
     useEffect(() => {
         setLoading(true);
@@ -36,16 +59,52 @@ export default function MapScreen() {
                 console.log('Permission to access location was denied');
                 return;
             }
-            let location = await Location.getCurrentPositionAsync({});
-            setCurrentLocation({
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude
+            const locationOptions = {
+                accuracy: Location.Accuracy.High,
+                timeInterval: 5000
+            };
+            const locationListener = await Location.watchPositionAsync(locationOptions, (location) => {
+                setCurrentLocation({
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                });
             });
-            setItemLocation(currentLocation);
+            // setItemLocation(currentLocation);
             setLoading(false);
         })();
     }, []);
 
+
+    // rendering markers from db /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    const getMarkers = async () => {
+        try {
+
+            const q = query(itemsCollectionRef, where("isFound", "==", true));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                const items = querySnapshot.docs.map((doc) => {
+                    return {
+                        ...doc.data(),
+                        id: doc.id,
+                    };
+                });
+                setItemsDocs(items);
+            } else {
+                console.log("No markers found");
+            }
+        } catch (error) {
+            console.error(error);
+        }
+
+    }
+
+    useEffect(() => {
+        getMarkers();
+    }, [])
+
+
+    // adding found item post ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     const handleAddItemImage = async () => {
         try {
@@ -72,7 +131,7 @@ export default function MapScreen() {
 
     const handlePostFoundItem = async () => {
         try {
-            if (!itemLocation || !itemTitle || !itemDescription || !itemImage || !itemType) {
+            if (!itemTitle || !itemDescription || !itemImage || !itemType) {
                 alert("Please input all required data");
                 return;
             }
@@ -88,7 +147,7 @@ export default function MapScreen() {
                     dateTime: new Date().toDateString(),
                     description: itemDescription,
                     isFound: true,
-                    location: itemLocation,
+                    location: currentLocation,
                     title: itemTitle,
                     type: itemType,
                     userID: FIREBASE_AUTH.currentUser.uid,
@@ -98,6 +157,7 @@ export default function MapScreen() {
 
                 const updatedPoints = userDoc.data().points + 30;
                 await updateDoc(userDoc.ref, { points: updatedPoints });
+                getMarkers();
                 setPostLoading(false);
             } else {
                 console.log("User document not found");
@@ -113,6 +173,7 @@ export default function MapScreen() {
             setItemUserPhone("");
         }
     };
+
 
     return (
         <View style={styles.mapContainer}>
@@ -140,7 +201,29 @@ export default function MapScreen() {
                         showsUserLocation={true}
                         userLocationUpdateInterval={5000}
                         followsUserLocation={true} // samo za apple?
-                    />
+                    >
+                        {itemsDocs.map((marker) => {
+                            const coordinateMarker = {
+                                latitude: marker.location.latitude,
+                                longitude: marker.location.longitude,
+                            };
+                            return (
+                                <Marker
+                                    key={marker.id}
+                                    coordinate={coordinateMarker}
+                                    title={marker.title}
+                                    onPress={() => { }}
+                                >
+                                    {/* <Callout style={styles.callout} accessible={false}>
+                                        <Text style={styles.calloutText}>Title: {marker.title}</Text>
+                                        <Text style={styles.calloutText}>Description: {marker.description}</Text>
+                                        <Text style={styles.calloutText}>Type: {marker.type}</Text>
+                                        <Text style={styles.calloutText}>Contact: {marker.contact}</Text>
+                                    </Callout> */}
+                                </Marker>
+                            );
+                        })}
+                    </MapView>
 
                     <Modal visible={isModalVisible} onRequestClose={() => setIsModalVisible(false)}>
                         <ScrollView style={styles.modalContainer} >
