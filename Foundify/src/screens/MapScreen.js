@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, ActivityIndicator, Modal, Button, Pressable, Image, TouchableOpacity, TextInput } from 'react-native'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { FIREBASE_AUTH, FIREBASE_DB, FIREBASE_STORAGE } from "../config/firebase"
 import MapView, { Marker, Callout } from "react-native-maps"
 import * as Location from "expo-location"
@@ -8,6 +8,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from "expo-image-picker";
 import { collection, addDoc, updateDoc, GeoPoint, getDocs, where, query } from 'firebase/firestore';
 import { uploadBytes, ref, getDownloadURL } from 'firebase/storage';
+import FoundItemPostOnMapComponent from '../components/FoundItemPostOnMapComponent'
 
 
 export default function MapScreen() {
@@ -30,6 +31,19 @@ export default function MapScreen() {
 
     const itemsCollectionRef = collection(FIREBASE_DB, "items");
     const usersCollectionRef = collection(FIREBASE_DB, "users");
+
+    const mapRef = useRef(null);
+
+    const centerMapOnLocation = (location) => {
+        const newRegion = {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+        };
+
+        mapRef.current.animateToRegion(newRegion);
+    }
 
     // user location /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -208,6 +222,7 @@ export default function MapScreen() {
             ) : (
                 <>
                     <MapView
+                        ref={mapRef}
                         style={styles.map}
                         initialRegion={{
                             latitude: currentLocation.latitude, // 43.318887,
@@ -330,6 +345,14 @@ export default function MapScreen() {
                     >
                         <Text style={styles.addPinText}> Found item? Add pin </Text>
                     </Pressable>
+
+                    <ScrollView style={styles.filteredListContainer} horizontal={true}>
+                        {itemsDocs.map((marker) => {
+                            return (
+                                <FoundItemPostOnMapComponent key={marker.id} marker={marker} centerMapOnMarker={centerMapOnLocation} />
+                            );
+                        })}
+                    </ScrollView>
                 </>
             )}
         </View>
@@ -470,5 +493,11 @@ const styles = StyleSheet.create({
         fontWeight: 600,
         fontSize: 16,
         color: "#385a64"
+    },
+    filteredListContainer: {
+        backgroundColor: "transparent",
+        position: "absolute",
+        height: "30%",
+        bottom: 0
     }
 })
