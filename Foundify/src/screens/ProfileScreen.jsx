@@ -1,15 +1,16 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native'
 import React, { useState, useEffect } from 'react'
-import { query, collection, getDocs, where } from 'firebase/firestore';
+import { query, collection, getDocs, where, onSnapshot, updateDoc } from 'firebase/firestore';
 import { FIREBASE_AUTH, FIREBASE_DB } from '../config/firebase'
 import { useNavigation } from '@react-navigation/native';
 
 export default function ProfileScreen() {
-    const [profileImageURL, setProfileImageURL] = useState(FIREBASE_AUTH.currentUser?.photoURL);
+    //const [profileImageURL, setProfileImageURL] = useState(FIREBASE_AUTH.currentUser.photoURL);
     const [userProfileData, setUserProfileData] = useState({
         email: "",
-        firstName: "firstName",
-        lastName: "lastName",
+        firstName: "",
+        image: FIREBASE_AUTH.currentUser.photoURL,
+        lastName: "",
         password: "",
         phoneNumber: "",
         points: 0,
@@ -18,17 +19,67 @@ export default function ProfileScreen() {
     });
 
     const { navigate } = useNavigation();
-
     const usersRefInDB = collection(FIREBASE_DB, "users");
 
-    const getUserData = async () => {
+    // const getUserData = async () => {
+    //     try {
+    //         const q = query(usersRefInDB, where("userID", "==", FIREBASE_AUTH.currentUser.uid));
+    //         const querySnapshot = await getDocs(q);
+    //         if (!querySnapshot.empty) {
+    //             const userDoc = querySnapshot.docs[0];
+    //             const image = FIREBASE_AUTH.currentUser.photoURL;
+    //             await updateDoc(userDoc.ref, { image: image });
+    //             setUserProfileData({ ...userDoc.data(), id: userDoc.id });
+    //         } else {
+    //             return;
+    //         }
+    //     } catch (error) {
+    //         console.error(error);
+    //     }
+    // }
+
+    // useEffect(() => {
+    //     getUserData();
+    // }, []);
+
+    const getUserDataRealtime = () => {
+        try {
+            const q = query(usersRefInDB, where("userID", "==", FIREBASE_AUTH.currentUser.uid));
+            const unsubscribe = onSnapshot(q, (querySnapshot) => {
+                if (!querySnapshot.empty) {
+                    const userDoc = querySnapshot.docs[0];
+                    const userData = { ...userDoc.data(), id: userDoc.id };
+                    setUserProfileData(userData);
+                } else {
+                    return;
+                }
+            }, (error) => {
+                console.error("Error getting user data:", error);
+            });
+            return unsubscribe;
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    useEffect(() => {
+        const unsubscribe = getUserDataRealtime();
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
+    }, []);
+
+
+    const updateUserImageURL = async () => {
         try {
             const q = query(usersRefInDB, where("userID", "==", FIREBASE_AUTH.currentUser.uid));
             const querySnapshot = await getDocs(q);
             if (!querySnapshot.empty) {
-                querySnapshot.forEach((doc) => {
-                    setUserProfileData({ ...doc.data(), id: doc.id });
-                })
+                const userDoc = querySnapshot.docs[0];
+                const image = FIREBASE_AUTH.currentUser.photoURL;
+                await updateDoc(userDoc.ref, { image: image });
             } else {
                 return;
             }
@@ -38,17 +89,18 @@ export default function ProfileScreen() {
     }
 
     useEffect(() => {
-        getUserData();
+        updateUserImageURL();
     }, []);
+
 
     return (
         <View style={styles.profileContainer}>
             <Image
                 style={styles.profileImage}
-                source={profileImageURL ? { uri: profileImageURL } : require('../../assets/defaultProfilePicture.png')}
+                source={userProfileData.image ? { uri: userProfileData.image } : require('../../assets/defaultProfilePicture.png')}
             />
             <View style={styles.userInfoContainer}>
-                <Text style={styles.username}> {`${userProfileData.username}`} </Text>
+                <Text style={styles.username}> {userProfileData.username} </Text>
                 <Text style={styles.firstNameLastName}> {`${userProfileData.firstName} ${userProfileData.lastName}`} </Text>
                 <Text style={styles.points}> Points: {`${userProfileData.points}`} </Text>
                 <View style={styles.buttonContainer}>
