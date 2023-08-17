@@ -37,8 +37,8 @@ const styles = StyleSheet.create({
     width: 230,
     marginHorizontal: 5,
     borderRadius: 5,
-    borderColor: "#385a64",
-    borderWidth: 1
+    borderColor: "#e69b22", //385a64 //e69b22
+    borderWidth: 2
   },
   postImage: {
     // height: "75%",
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     display: "flex",
     width: "99%",
     height: "25%",
-    backgroundColor: "#dee9ed", //dee9ed //f9f9f9
+    backgroundColor: "#fff3cc", //dee9ed //f9f9f9 //fff9e6 //fff3cc 
     borderBottomLeftRadius: 5,
     borderBottomRightRadius: 5,
   },

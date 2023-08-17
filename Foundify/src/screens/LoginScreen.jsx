@@ -17,6 +17,7 @@ export default function LoginScreen() {
     const [lastName, setLastName] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
     const [profilePicture, setProfilePicture] = useState(null);
+    const [profilePictureLink, setProfilePictureLink] = useState("");
     const [toRegister, setToRegister] = useState(false);
     const [popUpAddPhoto, setPopUpAddPhoto] = useState(false);
 
@@ -46,12 +47,13 @@ export default function LoginScreen() {
                 phoneNumber,
                 points: 0,
                 userID: response.user.uid,
-                username
+                username,
+                image: profilePictureLink
             }
+            await uploadImage(response.user.uid);
             const usersRefInDB = collection(db, "users");
             await addDoc(usersRefInDB, userRegisterObject);
             alert("Account successfully created!");
-            await uploadImage(response.user.uid);
         } catch (error) {
             console.error(error);
             alert("Registration failed:" + error.message);
@@ -156,6 +158,7 @@ export default function LoginScreen() {
                 blob.close();
 
                 const downloadURL = await getDownloadURL(imageRef);
+                setProfilePictureLink(downloadURL);
                 await updateProfile(auth.currentUser, {
                     photoURL: downloadURL,
                 });
@@ -169,11 +172,7 @@ export default function LoginScreen() {
 
 
     return (
-        <View
-            style={styles.container}
-            behavior='padding'
-        >
-
+        <View style={styles.container} behavior='padding'>
             {toRegister ? (
                 <>
                     <View style={styles.addImageContainer}>

@@ -6,8 +6,9 @@ import * as Location from "expo-location"
 import { ScrollView } from 'react-native-gesture-handler';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from "expo-image-picker";
-import { collection, addDoc, updateDoc, GeoPoint, getDocs, where, query } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, GeoPoint, getDocs, where, query, onSnapshot } from 'firebase/firestore';
 import { uploadBytes, ref, getDownloadURL } from 'firebase/storage';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import FoundItemPostOnMapComponent from '../components/FoundItemPostOnMapComponent'
 
 
@@ -16,14 +17,22 @@ export default function MapScreen() {
     const [postLoading, setPostLoading] = useState(false);
     const [itemImageLoading, setitemImageLoading] = useState(false);
     const [isPermissionAllowed, setIsPermissionAllowed] = useState(true);
-    const [itemsDocs, setItemsDocs] = useState([]);
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [showFilterRadiusModal, setShowFilterRadiusModal] = useState(false);
+    const [showFilterList, setShowFilterList] = useState(false);
+    const [radius, setRadius] = useState();
+    const [showFilterModal, setShowFilterModal] = useState(true);
+    const [filterUsername, setFilterUsername] = useState("");
+    const [filterTitle, setFilterTitle] = useState("");
+    const [filterType, setFilterType] = useState("");
+    const [filterDate, setFilterDate] = useState("");
+    const [filteredItemsDocs, setFilteredItemsDocs] = useState([]);
+    const [itemsDocs, setItemsDocs] = useState([]);
     const [itemImage, setItemImage] = useState(null);
     const [itemTitle, setItemTitle] = useState("");
     const [itemDescription, setItemDescription] = useState("");
     const [itemType, setItemType] = useState("");
     const [itemUserPhone, setItemUserPhone] = useState("");
-    // const [itemLocation, setItemLocation] = useState({ ...currentLocation });
     const [currentLocation, setCurrentLocation] = useState({
         latitude: 43.318887,
         longitude: 21.895935
@@ -31,6 +40,10 @@ export default function MapScreen() {
 
     const itemsCollectionRef = collection(FIREBASE_DB, "items");
     const usersCollectionRef = collection(FIREBASE_DB, "users");
+
+    // // const navigation = useNavigation();
+    // const route = useRoute();
+    // const { centerLocation } = route.params || {};
 
     const mapRef = useRef(null);
 
@@ -94,31 +107,66 @@ export default function MapScreen() {
 
     // rendering markers from db /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    const getMarkers = async () => {
-        try {
+    // const getMarkers = async () => {
+    //     try {
 
+    //         const q = query(itemsCollectionRef, where("isFound", "==", true));
+    //         const querySnapshot = await getDocs(q);
+    //         if (!querySnapshot.empty) {
+    //             const items = querySnapshot.docs.map((doc) => {
+    //                 return {
+    //                     ...doc.data(),
+    //                     id: doc.id,
+    //                 };
+    //             });
+    //             setItemsDocs(items);
+    //             setFilteredItemsDocs(items);
+    //         } else {
+    //             console.log("No markers found");
+    //         }
+    //     } catch (error) {
+    //         console.error(error);
+    //     }
+
+    // }
+
+    // useEffect(() => {
+    //     getMarkers();
+    // }, [])
+
+    const getMarkersRealtime = () => {
+        try {
             const q = query(itemsCollectionRef, where("isFound", "==", true));
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                const items = querySnapshot.docs.map((doc) => {
-                    return {
-                        ...doc.data(),
-                        id: doc.id,
-                    };
-                });
-                setItemsDocs(items);
-            } else {
-                console.log("No markers found");
-            }
+            const unsubscribe = onSnapshot(q, (querySnapshot) => {
+                if (!querySnapshot.empty) {
+                    const items = querySnapshot.docs.map((doc) => {
+                        return {
+                            ...doc.data(),
+                            id: doc.id,
+                        };
+                    });
+                    setItemsDocs(items);
+                    setFilteredItemsDocs(items);
+                } else {
+                    console.log("No markers found");
+                }
+            }, (error) => {
+                console.error("Error getting markers data:", error);
+            });
+            return unsubscribe;
         } catch (error) {
             console.error(error);
         }
-
     }
 
     useEffect(() => {
-        getMarkers();
-    }, [])
+        const unsubscribe = getMarkersRealtime();
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
+    }, []);
 
 
     // adding found item post ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -188,7 +236,7 @@ export default function MapScreen() {
 
                 const updatedPoints = userDoc.data().points + 30;
                 await updateDoc(userDoc.ref, { points: updatedPoints });
-                getMarkers();
+                // getMarkers();
                 setPostLoading(false);
             } else {
                 console.log("User document not found");
@@ -203,6 +251,83 @@ export default function MapScreen() {
             setItemType("");
             setItemUserPhone("");
         }
+    };
+
+    // filtering markers ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    const handleFilterHide = () => {
+        setShowFilterList(false);
+    }
+
+    const handleFilterShow = () => {
+        setShowFilterList(true);
+    }
+
+    const handleFilterClear = () => {
+        setFilteredItemsDocs(itemsDocs);
+    }
+
+    const handleFilterButtonPress = () => {
+        const markersAfterFiltering = itemsDocs.filter((marker) => {
+            return (
+                calculateDistance(
+                    marker.location.latitude,
+                    marker.location.longitude,
+                    currentLocation.latitude,
+                    currentLocation.longitude
+                ) < radius
+            );
+        });
+        setFilteredItemsDocs(markersAfterFiltering);
+    }
+
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+        const R = 6371;
+        const dLat = toRadians(lat2 - lat1);
+        const dLon = toRadians(lon2 - lon1);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRadians(lat1)) *
+            Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+        return distance * 1000;
+    };
+
+    const toRadians = (degrees) => {
+        return degrees * (Math.PI / 180);
+    };
+
+
+
+    const handleFilterShowModal = () => {
+        setShowFilterModal(true);
+    };
+
+    const handleFilterCancel2 = () => {
+        setShowFilterModal(false);
+    };
+
+    const handleFilterClear2 = () => {
+        setFilterUsername("");
+        setFilterTitle("");
+        setFilterType("");
+        setFilterDate("");
+        setFilteredItemsDocs(itemsDocs);
+    };
+
+    const handleFilterApply2 = () => {
+        const filteredItemsDocs = itemsDocs.filter((item) => {
+            const usernameMatch = item.userUsername.toLowerCase()
+                .includes(filterUsername.toLowerCase());
+            const titleMatch = item.title.toLowerCase()
+                .includes(filterTitle.toLowerCase());
+            const typeMatch = item.type.toLowerCase()
+                .includes(filterType.toLowerCase());
+            const dateMatch = item.dateTime.toLowerCase()
+                .includes(filterDate.toLowerCase());
+            return usernameMatch && titleMatch && typeMatch && dateMatch;
+        });
+        setFilteredItemsDocs(filteredItemsDocs);
+        setShowFilterModal(false);
     };
 
 
@@ -234,7 +359,7 @@ export default function MapScreen() {
                         userLocationUpdateInterval={5000}
                         followsUserLocation={true} // samo za apple?
                     >
-                        {itemsDocs.map((marker) => {
+                        {filteredItemsDocs.map((marker) => {
                             const coordinateMarker = {
                                 latitude: marker.location.latitude,
                                 longitude: marker.location.longitude,
@@ -346,13 +471,97 @@ export default function MapScreen() {
                         <Text style={styles.addPinText}> Found item? Add pin </Text>
                     </Pressable>
 
-                    <ScrollView style={styles.filteredListContainer} horizontal={true}>
-                        {itemsDocs.map((marker) => {
-                            return (
-                                <FoundItemPostOnMapComponent key={marker.id} marker={marker} centerMapOnMarker={centerMapOnLocation} />
-                            );
-                        })}
-                    </ScrollView>
+                    <Modal visible={showFilterModal} transparent={true} onRequestClose={() => setShowFilterModal(false)}>
+                        <View style={styles.filterModalContainer}>
+                            <View style={styles.filterModalContent}>
+                                <TextInput
+                                    style={styles.filterInput}
+                                    placeholder="Filter by username"
+                                    value={filterUsername}
+                                    onChangeText={setFilterUsername}
+                                />
+                                <TextInput
+                                    style={styles.filterInput}
+                                    placeholder="Filter by title"
+                                    value={filterTitle}
+                                    onChangeText={setFilterTitle}
+                                />
+                                <TextInput
+                                    style={styles.filterInput}
+                                    placeholder="Filter by type"
+                                    value={filterType}
+                                    onChangeText={setFilterType}
+                                />
+                                <TextInput
+                                    style={styles.filterInputDate}
+                                    placeholder="Filter by date"
+                                    value={filterDate}
+                                    onChangeText={setFilterDate}
+                                />
+                                <Text style={styles.filterDateText}>Format: Wed Aug 09 2023</Text>
+                                <TouchableOpacity style={styles.filterApplyButton} onPress={handleFilterApply2}>
+                                    <Text style={styles.filterApplyButtonText}>Apply</Text>
+                                </TouchableOpacity>
+                                <View style={styles.filterButtonContainer}>
+                                    <TouchableOpacity style={styles.filterCancelButton} onPress={handleFilterCancel2}>
+                                        <Text style={styles.filterButtonText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.filterClearButton} onPress={handleFilterClear2}>
+                                        <Text style={styles.filterButtonText}>Clear</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+                    </Modal>
+
+
+                    {!showFilterList &&
+                        <>
+                            <TouchableOpacity onPress={handleFilterShow} style={styles.filterShow}>
+                                <Text style={styles.filterShowText}>Show posts▲</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity onPress={handleFilterShowModal} style={styles.filterShowModal}>
+                                <Text style={styles.filterShowModalText}>Filter</Text>
+                            </TouchableOpacity>
+                        </>
+                    }
+                    {showFilterList &&
+                        <View style={styles.filteredListContainer}>
+                            <View style={styles.filterRow}>
+                                <TouchableOpacity onPress={handleFilterHide} style={styles.filterHide}>
+                                    <Text style={styles.filterHideText}>Hide▼</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={handleFilterButtonPress} style={styles.filterButton}>
+                                    <Text style={styles.filterButtonText}>Filter by radius</Text>
+                                </TouchableOpacity>
+                                <TextInput
+                                    style={styles.inputRadius}
+                                    placeholder='∞ m'
+                                    //value={`${radius.toString()}m`}
+                                    value={radius}
+                                    onChangeText={text => setRadius(text)}
+                                    keyboardType='numeric'
+                                />
+                                <TouchableOpacity onPress={handleFilterClear} style={styles.filterClear}>
+                                    <Text style={styles.filterClearText}>Clear</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <ScrollView style={styles.filteredList} horizontal={true}>
+                                {filteredItemsDocs.map((marker) => {
+                                    return (
+                                        <FoundItemPostOnMapComponent key={marker.id} marker={marker} centerMapOnMarker={centerMapOnLocation} />
+                                    );
+                                })}
+                            </ScrollView>
+
+                            <Modal visible={showFilterRadiusModal} onRequestClose={() => setIsModalVisible(false)}>
+
+                            </Modal>
+
+                        </View>
+                    }
+
                 </>
             )}
         </View>
@@ -384,7 +593,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         fontWeight: 600,
         fontSize: 18,
-        color: "#e69b22" //385a64
+        color: "#385a64" //385a64 //e69b22
     },
     modalContainer: {
         display: "flex",
@@ -497,7 +706,183 @@ const styles = StyleSheet.create({
     filteredListContainer: {
         backgroundColor: "transparent",
         position: "absolute",
-        height: "30%",
-        bottom: 0
+        height: "38%",
+        bottom: 0,
+        // display: "flex",
+        // justifyContent: "space-between",
+        // alignItems: "stretch"
+    },
+    filterButton: {
+        backgroundColor: "#fff3cc", //ffd84d //edb65e //ffcb50 //fff3cc
+        padding: 8,
+        borderColor: "#385a64", //385a64 //e69b22
+        borderWidth: 2,
+        width: 160,
+        borderRadius: 5,
+        marginHorizontal: 5,
+        marginBottom: 7
+    },
+    filterButtonText: {
+        color: "#385a64",
+        fontSize: 18,
+        fontWeight: 700,
+        textAlign: "center"
+    },
+    inputRadius: {
+        width: 60,
+        backgroundColor: "#fff3cc",
+        borderColor: "#385a64",
+        borderWidth: 2,
+        color: "#385a64",
+        fontSize: 16,
+        padding: 8,
+        alignSelf: "flex-start",
+        borderRadius: 5,
+        marginBottom: 7,
+        paddingVertical: 0,
+        height: "87%"
+    },
+    filterRow: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "baseline"
+    },
+    filterClear: {
+        backgroundColor: "#385a64",
+        padding: 8,
+        borderRadius: 5,
+        borderColor: "#385a64",
+        borderWidth: 2,
+        marginHorizontal: 5
+    },
+    filterClearText: {
+        color: "#fff3cc",
+        fontSize: 18,
+        fontWeight: 500,
+        textAlign: "center"
+    },
+    filterHide: {
+        backgroundColor: "#385a64",
+        padding: 8,
+        borderRadius: 5,
+        borderColor: "#385a64",
+        borderWidth: 2,
+        marginLeft: 5
+    },
+    filterHideText: {
+        color: "#fff3cc",
+        fontSize: 18,
+        fontWeight: 500,
+        textAlign: "center"
+    },
+    filterShow: {
+        position: "absolute",
+        left: 5,
+        bottom: 10,
+        backgroundColor: "#385a64",
+        padding: 8,
+        borderRadius: 5,
+        borderColor: "#385a64",
+        borderWidth: 2
+    },
+    filterShowText: {
+        color: "#fff3cc",
+        fontSize: 18,
+        fontWeight: 500,
+        textAlign: "center"
+    },
+    filteredList: {
+
+    },
+    filterShowModal: {
+        position: "absolute",
+        left: 160,
+        bottom: 10,
+        backgroundColor: "#385a64",
+        padding: 8,
+        borderRadius: 5,
+        borderColor: "#385a64",
+        borderWidth: 2
+    },
+    filterShowModalText: {
+        color: "#fff3cc",
+        fontSize: 18,
+        fontWeight: 500,
+        textAlign: "center"
+    },
+    /////////////////////
+    filterModalContainer: {
+        display: "flex",
+        justifyContent: "flex-end",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        height: "100%"
+    },
+    filterModalContent: {
+        backgroundColor: "white",
+        padding: 20,
+        width: "100%",
+        borderTopLeftRadius: 15,
+        borderTopRightRadius: 15
+    },
+    filterInput: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 4,
+        padding: 8,
+        marginBottom: 16,
+        color: "#385a64",
+        fontSize: 15
+    },
+    filterInputDate: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 4,
+        padding: 8,
+        color: "#385a64",
+        fontSize: 15
+    },
+    filterDateText: {
+        marginBottom: 20,
+        color: "#aaa",
+        fontStyle: "italic",
+        paddingLeft: 5,
+        paddingTop: 2
+    },
+    filterApplyButton: {
+        backgroundColor: "#385a64",
+        borderRadius: 10,
+        padding: 10,
+        marginBottom: 10
+    },
+    filterApplyButtonText: {
+        color: "#fff",
+        fontSize: 18,
+        fontWeight: "bold",
+        textAlign: "center"
+    },
+    filterButtonText: {
+        color: "#385a64",
+        fontSize: 18,
+        fontWeight: "bold",
+        textAlign: "center"
+    },
+    filterButtonContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
+    filterClearButton: {
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#385a64",
+        padding: 10,
+        width: "49%"
+    },
+    filterCancelButton: {
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#385a64",
+        padding: 10,
+        width: "49%"
     }
 })

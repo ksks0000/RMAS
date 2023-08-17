@@ -10,22 +10,47 @@ export default function LeaderboardScreen() {
 
     const usersCollectionRef = collection(FIREBASE_DB, "users");
 
-    const getUsers = async () => {
+    // const getUsers = async () => {
+    //     try {
+    //         const q = query(usersCollectionRef, orderBy("points", "desc"));
+    //         const data = await getDocs(q);
+    //         const users = data.docs.map((doc) => ({
+    //             ...doc.data(),
+    //             id: doc.id,
+    //         }));
+    //         setData(users);
+    //     } catch (error) {
+    //         console.error(error);
+    //     }
+    // };
+
+    // useEffect(() => {
+    //     getUsers();
+    // }, []);
+
+    const getUsersRealtime = async () => {
         try {
             const q = query(usersCollectionRef, orderBy("points", "desc"));
-            const data = await getDocs(q);
-            const users = data.docs.map((doc) => ({
-                ...doc.data(),
-                id: doc.id,
-            }));
-            setData(users);
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                const users = snapshot.docs.map((doc) => ({
+                    ...doc.data(),
+                    id: doc.id,
+                }));
+                setData(users);
+            });
+            return unsubscribe;
         } catch (error) {
             console.error(error);
         }
     };
 
     useEffect(() => {
-        getUsers();
+        const unsubscribe = getUsersRealtime();
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
     }, []);
 
     return (
@@ -33,8 +58,8 @@ export default function LeaderboardScreen() {
             {data.map((user) => {
                 return (
                     <View style={styles.userContainer} key={user.id}>
-                        {user.photoURL ?
-                            <Image style={styles.userImage} source={{ uri: user.photoURL }} />
+                        {user.image ?
+                            <Image style={styles.userImage} source={{ uri: user.image }} />
                             :
                             <Image style={styles.userImage} source={require("../../assets/defaultProfilePicture.png")} />}
                         <View style={styles.userInfo}>
