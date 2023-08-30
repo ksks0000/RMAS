@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, ActivityIndicator, Modal, Button, Pressable, Image, TouchableOpacity, TextInput } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { FIREBASE_AUTH, FIREBASE_DB, FIREBASE_STORAGE } from "../config/firebase"
-import { collection, addDoc, updateDoc, GeoPoint, getDocs, where, query } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, GeoPoint, getDocs, where, query, ref, onSnapshot } from 'firebase/firestore';
 import LostItemPostComponent from '../components/LostItemPostComponent';
 import { ScrollView } from 'react-native-gesture-handler';
 import * as ImagePicker from "expo-image-picker";
@@ -28,10 +28,34 @@ export default function LostItemsListScreen() {
     const itemsCollectionRef = collection(FIREBASE_DB, "items");
     const usersCollectionRef = collection(FIREBASE_DB, "users");
 
-    const getMarkersRealtime = async () => {
-        try {
-            const q = query(itemsCollectionRef, where("isFound", "==", false));
-            const querySnapshot = await getDocs(q);
+    // const getMarkers = async () => {
+    //     try {
+    //         const q = query(itemsCollectionRef, where("isFound", "==", false));
+    //         const querySnapshot = await getDocs(q);
+    //         if (!querySnapshot.empty) {
+    //             const items = querySnapshot.docs.map((doc) => {
+    //                 return {
+    //                     ...doc.data(),
+    //                     id: doc.id,
+    //                 };
+    //             });
+    //             setItemsDocs(items);
+    //             setFilteredItemsDocs(items);
+    //         } else {
+    //             console.log("No markers found");
+    //         }
+    //     } catch (error) {
+    //         console.error(error);
+    //     }
+    // }
+
+    // useEffect(() => {
+    //     getMarkers();
+    // }, [])
+
+    const getMarkersRealtime = () => {
+        const q = query(itemsCollectionRef, where("isFound", "==", false));
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
             if (!querySnapshot.empty) {
                 const items = querySnapshot.docs.map((doc) => {
                     return {
@@ -44,14 +68,15 @@ export default function LostItemsListScreen() {
             } else {
                 console.log("No markers found");
             }
-        } catch (error) {
-            console.error(error);
-        }
+        });
+        return unsubscribe;
     }
 
     useEffect(() => {
-        getMarkersRealtime();
-    }, [])
+        const unsubscribe = getMarkersRealtime();
+        return () => unsubscribe();
+    }, []);
+
 
     const handleFilterButtonPress = () => {
         setShowFilterModal(true);
