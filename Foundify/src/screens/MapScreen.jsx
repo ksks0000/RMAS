@@ -21,7 +21,7 @@ export default function MapScreen() {
     const [showFilterRadiusModal, setShowFilterRadiusModal] = useState(false);
     const [showFilterList, setShowFilterList] = useState(false);
     const [radius, setRadius] = useState();
-    const [showFilterModal, setShowFilterModal] = useState(true);
+    const [showFilterModal, setShowFilterModal] = useState(false);
     const [filterUsername, setFilterUsername] = useState("");
     const [filterTitle, setFilterTitle] = useState("");
     const [filterType, setFilterType] = useState("");
